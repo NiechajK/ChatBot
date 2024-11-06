@@ -1,49 +1,46 @@
+import openai
 from flask import Flask, request, jsonify
-from transformers import DistilBertTokenizer, DistilBertForSequenceClassification, pipeline
 from dotenv import load_dotenv
 import os
+from openai import OpenAI
 
 # Load environment variables from .env file
 load_dotenv()
-
 app = Flask(__name__)
+client = OpenAI()
 
-# Load DistilBERT tokenizer and model for sentiment analysis
-tokenizer = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
-model = DistilBertForSequenceClassification.from_pretrained("distilbert-base-uncased-finetuned-sst-2-english")
-
-# Create a pipeline for sentiment analysis
-sentiment_pipeline = pipeline("sentiment-analysis", model=model, tokenizer=tokenizer)
+# Set your OpenAI API key and Organization ID here
+openai.api_key = os.getenv("OPENAI_API_KEY")
+openai.organization = os.getenv("OPENAI_ORG_ID")
 
 @app.route('/test', methods=['POST'])
 def handle_test():
     user_message = request.json.get('message')
     response = {
-        "reply": "This is a placeholder response. In the future, this will be a sentiment-analysis-driven reply."
+        "reply": "This is a placeholder response. In the future, this will be a GPT-3.5 Turbo-generated reply."
     }
     return jsonify(response)
 
 @app.route('/message', methods=['POST'])
 def handle_message():
     user_message = request.json.get('message')
-    print(user_message)
+
     if not user_message:
         return jsonify({"error": "No message provided"}), 400
 
-    # Perform sentiment analysis on the user's message
+    # Send the user's message to GPT-3.5 Turbo and get the response
     try:
-        result = sentiment_pipeline(user_message)
-        sentiment = result[0]['label']
-        score = result[0]['score']
-        # Customize response based on sentiment analysis
-        if sentiment == 'POSITIVE':
-            chat_response = f"Thanks for the positive message! (Confidence: {score:.2f})"
-        else:
-            chat_response = f"I see you might be feeling a bit negative. (Confidence: {score:.2f})"
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": user_message}
+            ]
+        )
+        chat_response = response['choices'][0]['message']['content']
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-    # Return the response based on the sentiment of the user's message
     return jsonify({"reply": chat_response})
 
 if __name__ == '__main__':
