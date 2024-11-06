@@ -9,8 +9,10 @@ load_dotenv()
 app = Flask(__name__)
 client = OpenAI()
 
+
 # Set your OpenAI API key and Organization ID here
 openai.api_key = os.getenv("OPENAI_API_KEY")
+print(openai.api_key)
 openai.organization = os.getenv("OPENAI_ORG_ID")
 
 @app.route('/test', methods=['POST'])
